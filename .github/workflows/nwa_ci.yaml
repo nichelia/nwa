@@ -1,0 +1,116 @@
+name: nwa CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  lint:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Install miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: 'latest'
+          activate-environment: nwa
+      - name: Cache environment
+        id: cache-environment
+        uses: actions/cache@v1
+        with:
+          path: /github/workspace/3/envs/
+          key: environment-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+      - name: Cache pre-commits
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Configure environment
+        shell: bash -l {0}
+        run: ./scripts/helpers/environment.sh -f
+      - name: Lint
+        shell: bash -l {0}
+        run: make lint
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Install miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: 'latest'
+          activate-environment: nwa
+      - name: Cache environment
+        id: cache-environment
+        uses: actions/cache@v1
+        with:
+          path: /github/workspace/3/envs/
+          key: environment-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+      - name: Cache pre-commits
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Configure environment
+        shell: bash -l {0}
+        run: ./scripts/helpers/environment.sh -f
+      - name: Test
+        shell: bash -l {0}
+        run: make test
+      - name: Test coverage
+        shell: bash -l {0}
+        run: make test-coverage
+      - name: Upload coverage report to CodeCov
+        uses: codecov/codecov-action@v1
+
+  security-scan:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Install miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: 'latest'
+          activate-environment: nwa
+      - name: Cache environment
+        id: cache-environment
+        uses: actions/cache@v1
+        with:
+          path: /github/workspace/3/envs/
+          key: environment-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+      - name: Cache pre-commits
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Configure environment
+        shell: bash -l {0}
+        run: ./scripts/helpers/environment.sh -f
+      - name: Build Docker test image
+        shell: bash -l {0}
+        run: make build-docker-local
+      - name: Run security scan on Docker test image
+        uses: anchore/scan-action@master
+        with:
+          image-reference: "test/image:latest"
+          dockerfile-path: "./deployment/docker/test.dockerfile"
+          fail-build: true
+          include-app-packages: true
+      - name: Scan JSON results
+        run: for j in `ls ./anchore-reports/*.json`; do echo "---- ${j} ----"; cat ${j}; echo; done

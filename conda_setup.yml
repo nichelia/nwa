@@ -1,0 +1,13 @@
+name: nwa
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - conda-pack=0.4.0            # BSD
+  - git                         # GPL-2.0
+  - make=4.3                    # GPL-3.0
+  - pip=20.0                    # MIT
+  - poetry=1.0.0                # MIT
+  - pre-commit=2.2              # MIT
+  - python>=3.7                 # PSF
+  - shellcheck=0.7.0            # GPL-3.0
