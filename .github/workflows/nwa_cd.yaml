@@ -1,0 +1,141 @@
+name: nwa CD
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+
+  version-check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Tag name
+        id: tag_value
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Install miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: 'latest'
+          activate-environment: nwa
+      - name: Cache environment
+        id: cache-environment
+        uses: actions/cache@v1
+        with:
+          path: /github/workspace/3/envs/
+          key: environment-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+      - name: Cache pre-commits
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Configure environment
+        shell: bash -l {0}
+        run: ./scripts/helpers/environment.sh -f
+      - name: Check version
+        shell: bash -l {0}
+        run: |
+          package_version=$(poetry version | sed 's/[^0-9.]*//g')
+          git_tag=${{ steps.tag_value.outputs.VERSION }}
+          if [ "$package_version" = "$git_tag" ]; then
+            echo "Package version and git tag match."
+          else
+            echo "Package Version: ${package_version}"
+            echo "Git Tag: ${git_tag}"
+            echo "Package version and git tag do not match. Abort!"
+            exit 1
+          fi
+
+  package:
+    needs: [version-check]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Install miniconda
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: 'latest'
+          activate-environment: nwa
+      - name: Cache environment
+        id: cache-environment
+        uses: actions/cache@v1
+        with:
+          path: /github/workspace/3/envs/
+          key: environment-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('poetry.lock') }}
+      - name: Cache pre-commits
+        uses: actions/cache@v1
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('conda_setup.yml') }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Configure environment
+        shell: bash -l {0}
+        run: ./scripts/helpers/environment.sh -f
+      - name: Build
+        shell: bash -l {0}
+        run: make build-package
+      - name: Publish
+        shell: bash -l {0}
+        run: poetry publish -u ${{ secrets.PYPI_USERNAME }} -p ${{ secrets.PYPI_PASSWORD }}
+      - name: Wait for publish
+        shell: bash -l {0}
+        run: sleep 3m
+
+  publish:
+    needs: [version-check, package]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Tag name
+        id: tag_value
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@master
+        env:
+          APP_VERSION: ${{ steps.tag_value.outputs.VERSION }}
+        with:
+          name: nichelia/nwa
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          buildargs: APP_VERSION
+          tags: "${{ steps.tag_value.outputs.VERSION }}"
+          workdir: deployment/docker
+          dockerfile: prod.dockerfile
+
+  release:
+    needs: [version-check, package, publish]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Tag name
+        id: tag_value
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.tag_value.outputs.VERSION }}
+          release_name: v${{ steps.tag_value.outputs.VERSION }}
+          body: |
+            * [PyPi package](https://pypi.org/project/nwa/)
+            * [Docker image](https://hub.docker.com/repository/docker/nichelia/nwa/general)
+          draft: false
+          prerelease: false
