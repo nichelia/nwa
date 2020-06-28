@@ -40,7 +40,7 @@ jobs:
       - name: Check version
         shell: bash -l {0}
         run: |
-          package_version=$(poetry version | sed 's/[^0-9.]*//g')
+          package_version=$(poetry version | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
           git_tag=${{ steps.tag_value.outputs.VERSION }}
           if [ "$package_version" = "$git_tag" ]; then
             echo "Package version and git tag match."
