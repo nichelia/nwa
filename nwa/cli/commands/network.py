@@ -8,8 +8,10 @@
 import time
 from argparse import ArgumentParser, Namespace
 from timeit import default_timer
+from typing import Any
 
 from nwa.cli.base_command import BaseCommand
+from nwa.lib.analyses.network_analysis import NetworkAnalyser
 from nwa.logger import LOGGER
 
 
@@ -62,6 +64,5 @@ class NetworkCommand(BaseCommand):
             file: The graph file for the input of the command.
             output: The filename for the output of the command.
         """
-        raise NotImplementedError(
-            f"Method: analyse is undefined for command {self.name}"
-        )
+        analyser = NetworkAnalyser()
+        LOGGER.debug(f'Use "{analyser.name}" analyser with data: "{file}"')

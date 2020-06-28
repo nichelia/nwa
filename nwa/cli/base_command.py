@@ -1,5 +1,6 @@
 """base_command
 """
+import traceback
 from argparse import ArgumentParser, Namespace
 
 from nwa.logger import LOGGER
@@ -85,7 +86,9 @@ class BaseCommand:
         try:
             self.execute(args)
         except Exception as error:
+            track = traceback.format_exc()
             LOGGER.critical(error)
+            LOGGER.debug(track)
             raise SystemError(error)
 
     def execute(self, args: Namespace) -> None:

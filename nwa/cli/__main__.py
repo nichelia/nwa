@@ -1,5 +1,6 @@
 """Main
 """
+import traceback
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from typing import Callable, Dict
@@ -10,7 +11,7 @@ from nwa.cli.commands import COMMANDS
 from nwa.logger import LOGGER, setup_logger
 
 
-def main():  # pylint: disable=R1710
+def main():  # pylint: disable=inconsistent-return-statements
     """Entry point to CLI.
 
     Sets up logger, output directory,
@@ -54,7 +55,9 @@ def run(command: BaseCommand, args: Namespace) -> Callable:
                 return com.run(args)
         return command.run(args)
     except SystemError as error:
+        track = traceback.format_exc()
         LOGGER.critical(error)
+        LOGGER.debug(track)
 
 
 def configure_parser(subcommands_map: Dict[str, BaseCommand]) -> ArgumentParser:

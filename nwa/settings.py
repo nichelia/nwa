@@ -9,12 +9,12 @@ class NwaSetting:
     """
 
     def __init__(
-        self,  # pylint: disable=C0330
-        field: str,  # pylint: disable=C0330
-        datatype: type,  # pylint: disable=C0330
-        default_value: Any,  # pylint: disable=C0330
-        env_var_alias: str = None,  # pylint: disable=C0330
-        description: str = None,  # pylint: disable=C0330
+        self,
+        field: str,
+        datatype: type,
+        default_value: Any,
+        env_var_alias: str = None,
+        description: str = None,
     ):
         self.field = field
         self.datatype = datatype
