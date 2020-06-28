@@ -41,7 +41,7 @@ remove_custom_git_hooks()
 remove_python_temp_files()
 {
   echo -e "${green}Removing python temp files...${no_color}"
-  # Remove eny python unnecessary files
+  # Remove any python unnecessary files
   rm -rf -- bin dist .pytest_cache .coverage *.egg-info *.log coverage.xml
   find . -path "*/__pycache__" -type d -exec rm -r {} ';'
 }
