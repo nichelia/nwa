@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 MODULE=nwa
-VERSION=$$(poetry version | grep -o [0-9].[0-9].[0-9])
+VERSION=$$(poetry version | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
 
 ### Environment ###
 .PHONY: env
