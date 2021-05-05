@@ -23,7 +23,7 @@ pyyaml = "^5.3"              # MIT
 [tool.poetry.dev-dependencies]
 codecov = "^2.1"             # Apache2
 mock = "^4.0"                # BSD
-pytest = "^5.4"              # MIT
+pytest = "^6.2"              # MIT
 pytest-cov = "^2.10"          # MIT
 pytest-env = "^0.6"          # MIT
 
